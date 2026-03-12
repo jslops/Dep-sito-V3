@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
     <title>Depósito V3 Casa e Construção · Enterprise Plus</title>
-    <!-- Chart.js para gráficos -->
+    <!-- Chart.js v4.4.0 para gráficos (moderno e leve) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- SheetJS para Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
@@ -501,6 +501,7 @@
             padding: 20px;
             margin-top: 20px;
             height: 300px;
+            position: relative;
         }
 
         /* modal */
@@ -1001,6 +1002,10 @@
                 sincronizarAutomatico: true,
                 backupAutomaticoNuvem: true
             };
+
+            // Variáveis para os gráficos
+            let graficoVendasProduto = null;
+            let graficoVendasTempo = null;
 
             // ==================== FUNÇÕES DE CRIPTOGRAFIA ====================
             async function hashSenha(senha) {
@@ -1784,8 +1789,6 @@
             });
 
             // ==================== DASHBOARD ====================
-            let grafico1, grafico2;
-
             function atualizarDashboard() {
                 atualizarDashboardResumo();
 
@@ -1815,6 +1818,7 @@
                 document.getElementById('fatMes').innerText = `R$ ${fatMes.toFixed(2)}`;
                 document.getElementById('estoqueTotal').innerText = produtos.reduce((a, p) => a + p.qtd, 0);
 
+                // Dados para gráfico de produtos mais vendidos
                 let contagem = {};
                 vendas.filter(v => !v.estornado).forEach(v => {
                     v.itens.forEach(i => {
@@ -1825,24 +1829,81 @@
                 let maisVend = Object.entries(contagem).sort((a, b) => b[1] - a[1])[0];
                 document.getElementById('maisVendido').innerText = maisVend ? maisVend[0] : '—';
 
-                if (grafico1) grafico1.destroy();
-                if (grafico2) grafico2.destroy();
+                // Destruir gráficos existentes antes de criar novos
+                if (graficoVendasProduto) {
+                    graficoVendasProduto.destroy();
+                }
+                if (graficoVendasTempo) {
+                    graficoVendasTempo.destroy();
+                }
 
+                // Criar gráfico de produtos mais vendidos
                 const ctx1 = document.getElementById('graficoVendasProduto').getContext('2d');
                 const nomes = Object.keys(contagem).slice(0, 5);
                 const valores = Object.values(contagem).slice(0, 5);
-                grafico1 = new Chart(ctx1, {
+                
+                graficoVendasProduto = new Chart(ctx1, {
                     type: 'bar',
                     data: {
                         labels: nomes,
                         datasets: [{
-                            label: 'Qtd vendida',
+                            label: 'Quantidade vendida',
                             data: valores,
-                            backgroundColor: '#cfe3ff'
+                            backgroundColor: '#cfe3ff',
+                            borderColor: '#1e3c4f',
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            barPercentage: 0.7
                         }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Produtos mais vendidos',
+                                font: {
+                                    size: 16,
+                                    weight: 'bold'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#1e3c4f',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                borderColor: '#fff',
+                                borderWidth: 1
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0,0,0,0.05)'
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Quantidade'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeInOutQuart'
+                        }
                     }
                 });
 
+                // Dados para gráfico de vendas por tempo (últimos 7 dias)
                 const ctx2 = document.getElementById('graficoVendasTempo').getContext('2d');
                 let ultimosDias = [...Array(7)].map((_, i) => {
                     let d = new Date();
@@ -1855,15 +1916,77 @@
                     .reduce((a, v) => a + v.total, 0)
                 );
 
-                grafico2 = new Chart(ctx2, {
+                graficoVendasTempo = new Chart(ctx2, {
                     type: 'line',
                     data: {
                         labels: ultimosDias,
                         datasets: [{
                             label: 'Vendas (R$)',
                             data: valoresDia,
-                            borderColor: '#1e3c4f'
+                            borderColor: '#1e3c4f',
+                            backgroundColor: 'rgba(30, 60, 79, 0.1)',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#1e3c4f',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                            tension: 0.3,
+                            fill: true
                         }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Vendas dos últimos 7 dias',
+                                font: {
+                                    size: 16,
+                                    weight: 'bold'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#1e3c4f',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                callbacks: {
+                                    label: function(context) {
+                                        return `R$ ${context.raw.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0,0,0,0.05)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'R$ ' + value.toFixed(2);
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Valor (R$)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        animation: {
+                            duration: 1000,
+                            easing: 'easeInOutQuart'
+                        }
                     }
                 });
             }
